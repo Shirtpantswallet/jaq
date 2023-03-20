@@ -309,6 +309,35 @@ impl Val {
         ))
     }
 
+    pub fn min_by<'a>(self, f: impl Fn(Val) -> ValRs<'a>) -> ValR {
+        let mut err = None;
+        let binding = self.to_arr()?;
+        let min_val = binding
+            .iter()
+            .min_by(|left, right| {
+                if err.is_some() {
+                    return Ordering::Equal;
+                }
+                match (
+                    f((*left).clone()).collect::<Result<Vec<_>, _>>(),
+                    f((*right).clone()).collect::<Result<Vec<_>, _>>(),
+                ) {
+                    (Ok(l), Ok(r)) => l.cmp(&r),
+                    (Err(e), _) => {
+                        err = Some(e);
+                        Ordering::Equal
+                    }
+                    (_, Err(e)) => {
+                        err = Some(e);
+                        Ordering::Equal
+                    }
+                }
+            })
+            .map_or(&Val::Null, |v| v)
+            .clone();
+        err.map_or(Ok(min_val), Err)
+    }
+
     pub fn max_by<'a>(self, f: impl Fn(Val) -> ValRs<'a>) -> ValR {
         let mut err = None;
         let binding = self.to_arr()?;

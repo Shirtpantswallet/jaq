@@ -79,6 +79,7 @@ pub enum Filter {
     Sort,
     SortBy(Box<Self>),
     GroupBy(Box<Self>),
+    MinBy(Box<Self>),
     MaxBy(Box<Self>),
     Has(Box<Self>),
     Split(Box<Self>),
@@ -154,6 +155,7 @@ impl Filter {
             make_builtin!("sort", 0, Self::Sort),
             make_builtin!("sort_by", 1, Self::SortBy),
             make_builtin!("group_by", 1, Self::GroupBy),
+            make_builtin!("min_by", 1, Self::MaxBy),
             make_builtin!("max_by", 1, Self::MaxBy),
             make_builtin!("has", 1, Self::Has),
             make_builtin!("contains", 1, Self::Contains),
@@ -268,6 +270,7 @@ impl Filter {
             Self::Sort => Box::new(once(cv.1.mutate_arr(|a| a.sort()))),
             Self::SortBy(f) => Box::new(once(cv.1.sort_by(|v| f.run((cv.0.clone(), v))))),
             Self::GroupBy(f) => Box::new(once(cv.1.group_by(|v| f.run((cv.0.clone(), v))))),
+            Self::MinBy(f) => Box::new(once(cv.1.min_by(|v| f.run((cv.0.clone(), v))))),
             Self::MaxBy(f) => Box::new(once(cv.1.max_by(|v| f.run((cv.0.clone(), v))))),
             Self::Has(f) => Box::new(
                 f.run(cv.clone())
@@ -345,7 +348,12 @@ impl Filter {
             Self::FromJson | Self::ToJson => err,
             Self::Explode | Self::Implode => err,
             Self::AsciiDowncase | Self::AsciiUpcase => err,
-            Self::Reverse | Self::Sort | Self::SortBy(_) | Self::GroupBy(_) | Self::MaxBy(_) => err,
+            Self::Reverse
+            | Self::Sort
+            | Self::SortBy(_)
+            | Self::GroupBy(_)
+            | Self::MaxBy(_)
+            | Self::MinBy(_) => err,
             Self::Has(_) | Self::Contains(_) => err,
             Self::Split(_) | Self::Matches(..) => err,
             Self::Inputs | Self::Range(..) => err,
@@ -469,6 +477,7 @@ impl Filter {
             Self::SortBy(f) => Self::SortBy(sub(f)),
             Self::GroupBy(f) => Self::GroupBy(sub(f)),
             Self::MaxBy(f) => Self::MaxBy(sub(f)),
+            Self::MinBy(f) => Self::MinBy(sub(f)),
             Self::Has(f) => Self::Has(sub(f)),
             Self::Contains(f) => Self::Contains(sub(f)),
             Self::Split(f) => Self::Split(sub(f)),
